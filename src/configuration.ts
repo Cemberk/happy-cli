@@ -23,8 +23,9 @@ class Configuration {
   public readonly isExperimentalEnabled: boolean
 
   constructor() {
-    // Server configuration - priority: parameter > environment > default
-    this.serverUrl = process.env.HAPPY_SERVER_URL || 'https://handy-api.korshakov.org'
+    // Server configuration - priority: parameter > environment > local Nebula server
+    // Default to local Nebula server for complete data sovereignty
+    this.serverUrl = process.env.HAPPY_SERVER_URL || 'http://localhost:3005'
 
     // Check if we're running as daemon based on process args
     const args = process.argv.slice(2)

@@ -30,6 +30,8 @@ import { spawnHappyCLI } from './utils/spawnHappyCLI'
 import { render } from 'ink'
 import React from 'react'
 import { DaemonPrompt } from './ui/ink/DaemonPrompt'
+import { configuration } from '@/configuration'
+import { serverManager } from './server/serverManager'
 
 
 (async () => {
@@ -355,32 +357,43 @@ ${chalk.bold.cyan('Claude Code Options (from `claude --help`):')}
     // Daemon auto-start preference (machine already set up)
     let settings = await readSettings();
     if (settings && settings.daemonAutoStartWhenRunningHappy === undefined) {
-      const shouldAutoStart = await new Promise<boolean>((resolve) => {
-        let hasResolved = false;
+      // For privacy-first Nebula network, enable daemon by default
+      const isNebulaNetwork = configuration.serverUrl.includes('localhost') || configuration.serverUrl.includes('127.0.0.1');
+      
+      let shouldAutoStart = false;
+      if (isNebulaNetwork) {
+        // Privacy-first mode: auto-enable daemon
+        shouldAutoStart = true;
+        console.log(chalk.green('🔒 Privacy mode: Background service enabled automatically'));
+      } else {
+        // External server: ask user
+        shouldAutoStart = await new Promise<boolean>((resolve) => {
+          let hasResolved = false;
 
-        const onSelect = (autoStart: boolean) => {
-          if (!hasResolved) {
-            hasResolved = true;
-            app.unmount();
-            resolve(autoStart);
-          }
-        };
+          const onSelect = (autoStart: boolean) => {
+            if (!hasResolved) {
+              hasResolved = true;
+              app.unmount();
+              resolve(autoStart);
+            }
+          };
 
-        const app = render(React.createElement(DaemonPrompt, { onSelect }), {
-          exitOnCtrlC: false,
-          patchConsole: false
+          const app = render(React.createElement(DaemonPrompt, { onSelect }), {
+            exitOnCtrlC: false,
+            patchConsole: false
+          });
         });
-      });
+      }
 
       settings = await updateSettings(settings => ({
         ...settings,
         daemonAutoStartWhenRunningHappy: shouldAutoStart
       }));
 
-      if (shouldAutoStart) {
+      if (shouldAutoStart && !isNebulaNetwork) {
         console.log(chalk.green('\n✓ Happy will start the background service automatically'));
         console.log(chalk.gray('  The service will run whenever you use the happy command'));
-      } else {
+      } else if (!shouldAutoStart) {
         console.log(chalk.yellow('\n  You can enable this later by running: happy daemon install'));
       }
     }
@@ -402,6 +415,33 @@ ${chalk.bold.cyan('Claude Code Options (from `claude --help`):')}
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
+
+    // Ensure Happy server is running before starting CLI
+    console.log(chalk.blue('🔧 Checking Happy server...'));
+    const serverRunning = await serverManager.ensureServerRunning();
+    
+    if (!serverRunning) {
+      console.error(chalk.red('❌ Failed to start Happy server. Please check your PostgreSQL and Redis are running.'));
+      console.log(chalk.yellow('💡 Make sure you have:'));
+      console.log(chalk.yellow('   - PostgreSQL running on default port'));
+      console.log(chalk.yellow('   - Redis running on port 6380'));
+      console.log(chalk.yellow('   - happy-server directory accessible'));
+      process.exit(1);
+    }
+
+    // Setup cleanup handlers for graceful shutdown
+    let serverWasAutoStarted = false;
+    const cleanup = async () => {
+      if (serverWasAutoStarted) {
+        logger.debug('Cleaning up auto-started server...');
+        // Note: We'll leave the server running for other potential CLI sessions
+        // Only stop it if no other processes are using it
+      }
+    };
+
+    process.on('SIGTERM', cleanup);
+    process.on('SIGINT', cleanup);
+    process.on('beforeExit', cleanup);
 
     // Start the CLI
     try {

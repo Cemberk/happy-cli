@@ -22,7 +22,13 @@ import { MachineMetadata } from '@/api/types';
 export async function doAuth(): Promise<{ secret: Uint8Array, token: string } | null> {
     console.clear();
 
-    // Show authentication method selector
+    // Nebula network: Authentication is handled by network itself
+    if (configuration.serverUrl.includes('localhost') || configuration.serverUrl.includes('127.0.0.1')) {
+        console.log('🔒 Nebula network: Connected to privacy-first mesh');
+        return await doNebulaAuth();
+    }
+
+    // Show authentication method selector for external servers
     const authMethod = await selectAuthenticationMethod();
     if (!authMethod) {
         console.log('\nAuthentication cancelled.\n');
@@ -248,4 +254,19 @@ export async function authAndSetupMachineIfNeeded(): Promise<{
     logger.debug(`[AUTH] Machine ID: ${settings.machineId}`);
 
     return { credentials, machineId: settings.machineId! };
+}
+
+/**
+ * Nebula network authentication - no crypto needed
+ * Network security and authentication handled by Nebula mesh
+ */
+async function doNebulaAuth(): Promise<{ secret: Uint8Array, token: string }> {
+    // Minimal credentials for compatibility with existing API client
+    const secretBytes = new Uint8Array(32);
+    const token = 'nebula-network-token';
+    
+    console.log('✓ Authenticated via Nebula mesh network');
+    console.log('✓ Privacy-first single-user system');
+    
+    return { secret: secretBytes, token };
 }

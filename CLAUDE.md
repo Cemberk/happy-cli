@@ -1,12 +1,26 @@
-# Happy CLI Codebase Overview
+# Happy CLI - Privacy-First Development Tool
+
+**Last Updated: August 2025**
 
 ## Project Overview
 
-Happy CLI (`handy-cli`) is a command-line tool that wraps Claude Code to enable remote control and session sharing. It's part of a three-component system:
+Happy CLI is a privacy-focused command-line tool that enables AI-powered development sessions within your private Nebula network. It's part of a three-component ecosystem designed for complete data sovereignty:
 
-1. **handy-cli** (this project) - CLI wrapper for Claude Code
-2. **handy** - React Native mobile client
-3. **handy-server** - Node.js server with Prisma (hosted at https://handy-api.korshakov.org)
+1. **happy-cli** (this project) - Privacy-first CLI wrapper for Claude Code
+2. **happy** - React Native mobile client with local TTS/STT
+3. **happy-server** - Local Node.js server with encrypted storage
+
+## ⚡ **MAJOR PRIVACY TRANSFORMATION**
+
+**BREAKING CHANGE**: This version eliminates all external dependencies except user-chosen AI APIs. The system now operates entirely within your private Nebula network.
+
+### **What Changed:**
+- ❌ **Removed**: External server dependency (`handy-api.korshakov.org`)
+- ❌ **Removed**: Expo push notifications service
+- ❌ **Removed**: External analytics and tracking
+- ✅ **Added**: Local Nebula server communication (`localhost:3005`)
+- ✅ **Added**: P2P notification system 
+- ✅ **Added**: Local-only analytics storage
 
 ## Code Style Preferences
 

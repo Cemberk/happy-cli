@@ -15,7 +15,7 @@ export class ApiClient {
   constructor(token: string, secret: Uint8Array) {
     this.token = token
     this.secret = secret
-    this.pushClient = new PushNotificationClient(token)
+    this.pushClient = new PushNotificationClient(5757) // Use default local port for P2P notifications
   }
 
   /**

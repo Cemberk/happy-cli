@@ -173,25 +173,9 @@ class Logger {
   }
 
   private async sendToRemoteServer(level: string, message: string, ...args: unknown[]): Promise<void> {
-    if (!this.dangerouslyUnencryptedServerLoggingUrl) return
-    
-    try {
-      await fetch(this.dangerouslyUnencryptedServerLoggingUrl + '/logs-combined-from-cli-and-mobile-for-simple-ai-debugging', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level,
-          message: `${message} ${args.map(a => 
-            typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
-          ).join(' ')}`,
-          source: 'cli',
-          platform: process.platform
-        })
-      })
-    } catch (error) {
-      // Silently fail to avoid disrupting the session
-    }
+    // Remote logging completely disabled for data sovereignty
+    // All logging remains local-only within Nebula network
+    return;
   }
 
   private logToFile(prefix: string, message: string, ...args: unknown[]): void {
