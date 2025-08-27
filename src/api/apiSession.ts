@@ -72,6 +72,8 @@ export class ApiSessionClient extends EventEmitter {
             try {
                 const method = data.method;
                 const handler = this.rpcHandlers.get(method);
+                
+                logger.debug('[SOCKET] [RPC] Handling RPC request:', { method, paramsType: typeof data.params, secretType: typeof this.secret });
 
                 if (!handler) {
                     logger.debug('[SOCKET] [RPC] [ERROR] method not found', { method });
@@ -82,7 +84,33 @@ export class ApiSessionClient extends EventEmitter {
                 }
 
                 // Decrypt the incoming params
-                const decryptedParams = decrypt(decodeBase64(data.params), this.secret);
+                logger.debug('[SOCKET] [RPC] Attempting to decrypt params');
+                logger.debug('[SOCKET] [RPC] Raw params:', data.params);
+                
+                // Handle both string and object param formats
+                let paramsString: string;
+                if (typeof data.params === 'string') {
+                    paramsString = data.params;
+                } else if (typeof data.params === 'object' && data.params !== null) {
+                    // If params is an object, it might have a 'params' or 'data' field
+                    if ('params' in data.params) {
+                        paramsString = (data.params as any).params;
+                    } else if ('data' in data.params) {
+                        paramsString = (data.params as any).data;
+                    } else {
+                        // Try to stringify and decode the whole object
+                        paramsString = JSON.stringify(data.params);
+                        logger.debug('[SOCKET] [RPC] Using stringified object as params');
+                    }
+                } else {
+                    throw new Error(`Invalid params type: ${typeof data.params}`);
+                }
+                
+                logger.debug('[SOCKET] [RPC] Using params string:', typeof paramsString, paramsString.substring(0, 50) + '...');
+                const decodedData = decodeBase64(paramsString);
+                logger.debug('[SOCKET] [RPC] Decoded data type:', typeof decodedData, 'length:', decodedData.length);
+                const decryptedParams = decrypt(decodedData, this.secret);
+                logger.debug('[SOCKET] [RPC] Decryption successful, params:', decryptedParams);
 
                 // Call the handler
                 const result = await handler(decryptedParams);

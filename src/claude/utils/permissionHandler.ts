@@ -95,9 +95,11 @@ export class PermissionHandler {
         } else {
             // Handle default case for all other tools
             const result: PermissionResult = response.approved
-                ? { behavior: 'allow', updatedInput: (pending.input as Record<string, unknown>) || {} }
+                ? { behavior: 'allow', updatedInput: pending.input as Record<string, unknown> }
                 : { behavior: 'deny', message: response.reason || `The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to tell you how to proceed.` };
 
+            logger.debug(`[PermissionHandler] Resolving permission for ${pending.toolName}: ${response.approved ? 'APPROVED' : 'DENIED'}`);
+            logger.debug(`[PermissionHandler] Permission result:`, result);
             pending.resolve(result);
         }
     }
@@ -212,7 +214,7 @@ export class PermissionHandler {
                 }
             }));
 
-            logger.debug(`Permission request sent for tool call ${id}: ${toolName}`);
+            logger.debug(`[PermissionHandler] Permission request sent for tool call ${id}: ${toolName}, input:`, input);
         });
     }
 
@@ -364,15 +366,17 @@ export class PermissionHandler {
      */
     private setupClientHandler(): void {
         this.session.client.setHandler<PermissionResponse, void>('permission', async (message) => {
-            logger.debug(`Permission response: ${JSON.stringify(message)}`);
+            logger.debug(`[PermissionHandler] Received RPC permission response: ${JSON.stringify(message)}`);
 
             const id = message.id;
             const pending = this.pendingRequests.get(id);
 
             if (!pending) {
-                logger.debug('Permission request not found or already resolved');
+                logger.debug('[PermissionHandler] Permission request not found or already resolved');
                 return;
             }
+            
+            logger.debug(`[PermissionHandler] Processing permission for tool ${pending.toolName}, approved: ${message.approved}`);
 
             // Store the response with timestamp
             this.responses.set(id, { ...message, receivedAt: Date.now() });

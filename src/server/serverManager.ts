@@ -32,10 +32,15 @@ export class ServerManager {
      */
     async isServerRunning(serverUrl: string = 'http://localhost:3005'): Promise<boolean> {
         try {
-            const response = await fetch(`${serverUrl}/health`, {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+            const response = await fetch(`${serverUrl}/`, {
                 method: 'GET',
-                timeout: 3000
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
             return response.ok;
         } catch (error) {
             logger.debug(`Server health check failed: ${error}`);
@@ -244,7 +249,7 @@ export class ServerManager {
 
         // Start server with default config
         const defaultConfig: ServerConfig = {
-            databaseUrl: "postgresql://postgres:postgres@localhost:5432/happy?schema=public",
+            databaseUrl: `postgresql://${process.env.USER || 'postgres'}@localhost:5432/happy?schema=public`,
             redisUrl: "redis://localhost:6380",
             masterSecret: "development-secret-key-please-change-in-production",
             port: 3005,
